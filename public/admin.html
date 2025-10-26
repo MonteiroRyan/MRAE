@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1>🗳️ Painel Administrativo</h1>
+            <div class="nav-right">
+                <span id="nomeUsuario"></span>
+                <button onclick="logout()" class="btn btn-secondary">Sair</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-button active" onclick="mudarTab('usuarios')">Usuários</button>
+            <button class="tab-button" onclick="mudarTab('municipios')">Municípios</button>
+            <button class="tab-button" onclick="mudarTab('resultados')">Resultados</button>
+        </div>
+
+        <!-- Tab Usuários -->
+        <div id="tab-usuarios" class="tab-content active">
+            <div class="section-header">
+                <h2>Gerenciar Usuários</h2>
+                <button onclick="abrirModalUsuario()" class="btn btn-primary">+ Novo Usuário</button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>CPF</th>
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th>Município</th>
+                            <th>Peso</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaUsuarios">
+                        <tr><td colspan="7" class="loading">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab Municípios -->
+        <div id="tab-municipios" class="tab-content">
+            <div class="section-header">
+                <h2>Gerenciar Municípios</h2>
+                <button onclick="abrirModalMunicipio()" class="btn btn-primary">+ Novo Município</button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Peso</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaMunicipios">
+                        <tr><td colspan="3" class="loading">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab Resultados -->
+        <div id="tab-resultados" class="tab-content">
+            <h2>Resultados da Votação</h2>
+            <div id="resultadosContainer"></div>
+        </div>
+    </div>
+
+    <!-- Modal Usuário -->
+    <div id="modalUsuario" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModalUsuario()">&times;</span>
+            <h2 id="tituloModalUsuario">Novo Usuário</h2>
+            <form id="formUsuario">
+                <input type="hidden" id="usuarioId">
+                
+                <div class="form-group">
+                    <label for="usuarioCpf">CPF *</label>
+                    <input type="text" id="usuarioCpf" maxlength="14" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="usuarioNome">Nome *</label>
+                    <input type="text" id="usuarioNome" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="usuarioSenha">Senha *</label>
+                    <input type="password" id="usuarioSenha">
+                    <small>Deixe em branco para manter a senha atual (ao editar)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="usuarioTipo">Tipo *</label>
+                    <select id="usuarioTipo" required onchange="toggleMunicipio()">
+                        <option value="">Selecione...</option>
+                        <option value="ADMIN">Administrador</option>
+                        <option value="PREFEITO">Prefeito</option>
+                        <option value="REPRESENTANTE">Representante</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="grupoMunicipio">
+                    <label for="usuarioMunicipio">Município *</label>
+                    <select id="usuarioMunicipio">
+                        <option value="">Selecione...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="usuarioAtivo" checked>
+                        Usuário ativo
+                    </label>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" onclick="fecharModalUsuario()" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+
+                <div id="mensagemUsuario" class="mensagem"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Município -->
+    <div id="modalMunicipio" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModalMunicipio()">&times;</span>
+            <h2 id="tituloModalMunicipio">Novo Município</h2>
+            <form id="formMunicipio">
+                <input type="hidden" id="municipioId">
+                
+                <div class="form-group">
+                    <label for="municipioNome">Nome *</label>
+                    <input type="text" id="municipioNome" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="municipioPeso">Peso *</label>
+                    <input type="number" id="municipioPeso" step="0.01" min="0" required>
+                    <small>Peso do voto deste município</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" onclick="fecharModalMunicipio()" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+
+                <div id="mensagemMunicipio" class="mensagem"></div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/utils.js"></script>
+    <script src="/js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Votação</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1>🗳️ Sistema de Votação</h1>
+            <div class="nav-right">
+                <span id="nomeUsuario"></span>
+                <button onclick="logout()" class="btn btn-secondary">Sair</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="votacao-box">
+            <div class="info-usuario">
+                <h2>Informações do Votante</h2>
+                <p><strong>Nome:</strong> <span id="infoNome"></span></p>
+                <p><strong>CPF:</strong> <span id="infoCpf"></span></p>
+                <p><strong>Município:</strong> <span id="infoMunicipio"></span></p>
+                <p><strong>Peso do voto:</strong> <span id="infoPeso"></span></p>
+            </div>
+
+            <div id="conteudoVotacao">
+                <h2>Realize seu voto</h2>
+                <p class="descricao">Selecione uma das opções abaixo. Você só pode votar uma vez.</p>
+
+                <div class="opcoes-voto">
+                    <button onclick="votar('SIM')" class="btn-voto btn-sim">
+                        <span class="emoji">✅</span>
+                        <span>SIM</span>
+                    </button>
+
+                    <button onclick="votar('NAO')" class="btn-voto btn-nao">
+                        <span class="emoji">❌</span>
+                        <span>NÃO</span>
+                    </button>
+
+                    <button onclick="votar('ABSTENCAO')" class="btn-voto btn-abstencao">
+                        <span class="emoji">⚪</span>
+                        <span>ABSTENÇÃO</span>
+                    </button>
+
+                    <button onclick="votar('AUSENTE')" class="btn-voto btn-ausente">
+                        <span class="emoji">🚫</span>
+                        <span>AUSENTE</span>
+                    </button>
+                </div>
+
+                <div id="mensagem" class="mensagem"></div>
+            </div>
+
+            <div id="votoRegistrado" style="display: none;">
+                <div class="success-message">
+                    <h2>✅ Voto Registrado com Sucesso!</h2>
+                    <p>Seu voto foi computado e não pode ser alterado.</p>
+                    <button onclick="window.location.href='/resultados.html'" class="btn btn-primary">
+                        Ver Resultados
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/utils.js"></script>
+    <script src="/js/votacao.js"></script>
+</body>
+</html>

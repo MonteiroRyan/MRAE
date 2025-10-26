@@ -1,0 +1,335 @@
+const { pool } = require('../server');
+const { validarCPF } = require('../utils/validarCPF');
+const bcrypt = require('bcryptjs');
+
+const adminController = {
+  // CRUD de Usuários
+  async criarUsuario(req, res) {
+    try {
+      const { cpf, nome, senha, tipo, municipio_id } = req.body;
+
+      // Validações
+      if (!validarCPF(cpf)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'CPF inválido' 
+        });
+      }
+
+      if (!nome || !senha || !tipo) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Todos os campos são obrigatórios' 
+        });
+      }
+
+      if (tipo !== 'ADMIN' && !municipio_id) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Município é obrigatório para prefeitos e representantes' 
+        });
+      }
+
+      // Verificar se CPF já existe
+      const [usuariosExistentes] = await pool.query(
+        'SELECT id FROM usuarios WHERE cpf = ?',
+        [cpf]
+      );
+
+      if (usuariosExistentes.length > 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'CPF já cadastrado' 
+        });
+      }
+
+      // Hash da senha
+      const senhaHash = await bcrypt.hash(senha, 10);
+
+      // Inserir usuário
+      const [resultado] = await pool.query(
+        'INSERT INTO usuarios (cpf, nome, senha, tipo, municipio_id, ativo) VALUES (?, ?, ?, ?, ?, 1)',
+        [cpf, nome, senhaHash, tipo, municipio_id || null]
+      );
+
+      return res.json({
+        success: true,
+        message: 'Usuário criado com sucesso',
+        usuario: {
+          id: resultado.insertId,
+          cpf,
+          nome,
+          tipo
+        }
+      });
+
+    } catch (error) {
+      console.error('Erro ao criar usuário:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Erro ao criar usuário' 
+      });
+    }
+  },
+
+  async listarUsuarios(req, res) {
+    try {
+      const [usuarios] = await pool.query(
+        `SELECT u.id, u.cpf, u.nome, u.tipo, u.ativo, 
+                m.nome as municipio_nome, m.peso
+         FROM usuarios u 
+         LEFT JOIN municipios m ON u.municipio_id = m.id
+         ORDER BY u.nome`
+      );
+
+      return res.json({
+        success: true,
+        usuarios
+      });
+
+    } catch (error) {
+      console.error('Erro ao listar usuários:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Erro ao listar usuários' 
+      });
+    }
+  },
+
+  async atualizarUsuario(req, res) {
+    try {
+      const { id } = req.params;
+      const { nome, senha, tipo, municipio_id, ativo } = req.body;
+
+      // Verificar se usuário existe
+      const [usuariosExistentes] = await pool.query(
+        'SELECT id FROM usuarios WHERE id = ?',
+        [id]
+      );
+
+      if (usuariosExistentes.length === 0) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Usuário não encontrado' 
+        });
+      }
+
+      // Construir query de atualização
+      let query = 'UPDATE usuarios SET ';
+      const params = [];
+      const updates = [];
+
+      if (nome) {
+        updates.push('nome = ?');
+        params.push(nome);
+      }
+
+      if (senha) {
+        const senhaHash = await bcrypt.hash(senha, 10);
+        updates.push('senha = ?');
+        params.push(senhaHash);
+      }
+
+      if (tipo) {
+        updates.push('tipo = ?');
+        params.push(tipo);
+      }
+
+      if (municipio_id !== undefined) {
+        updates.push('municipio_id = ?');
+        params.push(municipio_id);
+      }
+
+      if (ativo !== undefined) {
+        updates.push('ativo = ?');
+        params.push(ativo ? 1 : 0);
+      }
+
+      query += updates.join(', ') + ' WHERE id = ?';
+      params.push(id);
+
+      await pool.query(query, params);
+
+      return res.json({
+        success: true,
+        message: 'Usuário atualizado com sucesso'
+      });
+
+    } catch (error) {
+      console.error('Erro ao atualizar usuário:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Erro ao atualizar usuário' 
+      });
+    }
+  },
+
+  async deletarUsuario(req, res) {
+    try {
+      const { id } = req.params;
+
+      // Não permitir deletar se já votou
+      const [votos] = await pool.query(
+        'SELECT id FROM votos WHERE usuario_id = ?',
+        [id]
+      );
+
+      if (votos.length > 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Não é possível deletar usuário que já votou' 
+        });
+      }
+
+      await pool.query('DELETE FROM usuarios WHERE id = ?', [id]);
+
+      return res.json({
+        success: true,
+        message: 'Usuário deletado com sucesso'
+      });
+
+    } catch (error) {
+      console.error('Erro ao deletar usuário:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Erro ao deletar usuário' 
+      });
+    }
+  },
+
+  // CRUD de Municípios
+  async criarMunicipio(req, res) {
+    try {
+      const { nome, peso } = req.body;
+
+      if (!nome || !peso) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Nome e peso são obrigatórios' 
+        });
+      }
+
+      const [resultado] = await pool.query(
+        'INSERT INTO municipios (nome, peso) VALUES (?, ?)',
+        [nome, peso]
+      );
+
+      return res.json({
+        success: true,
+        message: 'Município criado com sucesso',
+        municipio: {
+          id: resultado.insertId,
+          nome,
+          peso
+        }
+      });
+
+    } catch (error) {
+      console.error('Erro ao criar município:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Erro ao criar município' 
+      });
+    }
+  },
+
+  async listarMunicipios(req, res) {
+    try {
+      const [municipios] = await pool.query(
+        'SELECT * FROM municipios ORDER BY nome'
+      );
+
+      return res.json({
+        success: true,
+        municipios
+      });
+
+    } catch (error) {
+      console.error('Erro ao listar municípios:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Erro ao listar municípios' 
+      });
+    }
+  },
+
+  async atualizarMunicipio(req, res) {
+    try {
+      const { id } = req.params;
+      const { nome, peso } = req.body;
+
+      const updates = [];
+      const params = [];
+
+      if (nome) {
+        updates.push('nome = ?');
+        params.push(nome);
+      }
+
+      if (peso !== undefined) {
+        updates.push('peso = ?');
+        params.push(peso);
+      }
+
+      if (updates.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Nenhum campo para atualizar' 
+        });
+      }
+
+      params.push(id);
+      await pool.query(
+        `UPDATE municipios SET ${updates.join(', ')} WHERE id = ?`,
+        params
+      );
+
+      return res.json({
+        success: true,
+        message: 'Município atualizado com sucesso'
+      });
+
+    } catch (error) {
+      console.error('Erro ao atualizar município:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Erro ao atualizar município' 
+      });
+    }
+  },
+
+  async deletarMunicipio(req, res) {
+    try {
+      const { id } = req.params;
+
+      // Verificar se há usuários vinculados
+      const [usuarios] = await pool.query(
+        'SELECT id FROM usuarios WHERE municipio_id = ?',
+        [id]
+      );
+
+      if (usuarios.length > 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Não é possível deletar município com usuários vinculados' 
+        });
+      }
+
+      await pool.query('DELETE FROM municipios WHERE id = ?', [id]);
+
+      return res.json({
+        success: true,
+        message: 'Município deletado com sucesso'
+      });
+
+    } catch (error) {
+      console.error('Erro ao deletar município:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Erro ao deletar município' 
+      });
+    }
+  }
+};
+
+module.exports = adminController;
