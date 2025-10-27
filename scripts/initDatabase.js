@@ -16,11 +16,11 @@ async function initDatabase() {
         console.log('✅ Conectado ao MySQL');
 
         // Criar banco de dados
-        await connection.query(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME || 'sistema_votacao'}`);
+        await connection.query(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME || 'MRAE'}`);
         console.log('✅ Banco de dados criado/verificado');
 
         // Usar o banco
-        await connection.query(`USE ${process.env.DB_NAME || 'sistema_votacao'}`);
+        await connection.query(`USE ${process.env.DB_NAME || 'MRAE'}`);
 
         // Criar tabela de municípios
         await connection.query(`
@@ -72,16 +72,16 @@ async function initDatabase() {
 
         // Inserir municípios de exemplo
         const municipiosExemplo = [
-            ['São Paulo', 10.00],
-            ['Rio de Janeiro', 8.00],
-            ['Belo Horizonte', 6.00],
-            ['Brasília', 7.00],
-            ['Salvador', 5.00],
-            ['Fortaleza', 4.50],
-            ['Curitiba', 5.50],
-            ['Recife', 4.00],
-            ['Porto Alegre', 5.00],
-            ['Manaus', 3.50]
+            ['Vitória', 10.00],
+            ['Serra', 8.00],
+            ['Cariacica', 6.00],
+            ['Vila Velha', 7.00],
+            ['Viana', 5.00],
+            ['Fundão', 4.50],
+            ['Linhares', 5.50],
+            ['Cachoeiro de Itapemirim', 4.00],
+            ['Guarapari', 5.00],
+            ['São Mateus', 3.50]
         ];
 
         for (const [nome, peso] of municipiosExemplo) {
