@@ -5,22 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resultados da Votação</title>
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-container">
-            <h1>🗳️ Resultados da Votação</h1>
+            <h1><i class="fas fa-chart-line"></i> Resultados da Votação</h1>
             <div class="nav-right">
-                <span id="nomeUsuario"></span>
-                <button onclick="logout()" class="btn btn-secondary">Sair</button>
+                <span><i class="fas fa-user-circle"></i> <span id="nomeUsuario"></span></span>
+                <button onclick="logout()" class="btn btn-secondary">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </button>
             </div>
         </div>
     </nav>
 
-    <div class="container">
+    <div class="container fade-in">
         <div class="resultados-header">
-            <h2>Resultados em Tempo Real</h2>
+            <h2><i class="fas fa-poll"></i> Resultados em Tempo Real</h2>
             <p class="atualizacao">
                 <span class="status-indicator"></span>
                 Atualização automática ativa
@@ -29,36 +32,36 @@
 
         <div class="stats-grid">
             <div class="stat-card">
-                <h3>Total de Votos</h3>
+                <h3><i class="fas fa-vote-yea"></i> Total de Votos</h3>
                 <p class="stat-value" id="totalVotos">0</p>
             </div>
             <div class="stat-card">
-                <h3>Peso Total</h3>
+                <h3><i class="fas fa-weight"></i> Peso Total</h3>
                 <p class="stat-value" id="pesoTotal">0</p>
             </div>
             <div class="stat-card">
-                <h3>Participação</h3>
+                <h3><i class="fas fa-percentage"></i> Participação</h3>
                 <p class="stat-value" id="participacao">0%</p>
             </div>
             <div class="stat-card">
-                <h3>Usuários Cadastrados</h3>
+                <h3><i class="fas fa-users"></i> Usuários Cadastrados</h3>
                 <p class="stat-value" id="usuariosCadastrados">0</p>
             </div>
         </div>
 
         <div class="charts-container">
             <div class="chart-box">
-                <h3>Distribuição por Quantidade de Votos</h3>
+                <h3><i class="fas fa-chart-pie"></i> Distribuição por Quantidade de Votos</h3>
                 <canvas id="chartQuantidade"></canvas>
             </div>
             <div class="chart-box">
-                <h3>Distribuição por Peso Ponderado</h3>
+                <h3><i class="fas fa-chart-bar"></i> Distribuição por Peso Ponderado</h3>
                 <canvas id="chartPeso"></canvas>
             </div>
         </div>
 
         <div class="detalhes-resultados">
-            <h3>Detalhamento dos Resultados</h3>
+            <h3><i class="fas fa-table"></i> Detalhamento dos Resultados</h3>
             <table>
                 <thead>
                     <tr>
@@ -70,7 +73,7 @@
                     </tr>
                 </thead>
                 <tbody id="tabelaResultados">
-                    <tr><td colspan="5" class="loading">Carregando...</td></tr>
+                    <tr><td colspan="5" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>
                 </tbody>
             </table>
         </div>

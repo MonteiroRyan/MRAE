@@ -5,30 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Votação</title>
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-container">
-            <h1>🗳️ Sistema de Votação</h1>
+            <h1><i class="fas fa-vote-yea"></i> Sistema de Votação</h1>
             <div class="nav-right">
-                <span id="nomeUsuario"></span>
-                <button onclick="logout()" class="btn btn-secondary">Sair</button>
+                <span><i class="fas fa-user-circle"></i> <span id="nomeUsuario"></span></span>
+                <button onclick="logout()" class="btn btn-secondary">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </button>
             </div>
         </div>
     </nav>
 
-    <div class="container">
+    <div class="container fade-in">
         <div class="votacao-box">
             <div class="info-usuario">
-                <h2>Informações do Votante</h2>
-                <p><strong>Nome:</strong> <span id="infoNome"></span></p>
-                <p><strong>CPF:</strong> <span id="infoCpf"></span></p>
-                <p><strong>Município:</strong> <span id="infoMunicipio"></span></p>
-                <p><strong>Peso do voto:</strong> <span id="infoPeso"></span></p>
+                <h2><i class="fas fa-info-circle"></i> Informações do Votante</h2>
+                <p><strong><i class="fas fa-user"></i> Nome:</strong> <span id="infoNome"></span></p>
+                <p><strong><i class="fas fa-id-card"></i> CPF:</strong> <span id="infoCpf"></span></p>
+                <p><strong><i class="fas fa-city"></i> Município:</strong> <span id="infoMunicipio"></span></p>
+                <p><strong><i class="fas fa-weight"></i> Peso do voto:</strong> <span id="infoPeso"></span></p>
             </div>
 
             <div id="conteudoVotacao">
-                <h2>Realize seu voto</h2>
+                <h2><i class="fas fa-hand-point-up"></i> Realize seu voto</h2>
                 <p class="descricao">Selecione uma das opções abaixo. Você só pode votar uma vez.</p>
 
                 <div class="opcoes-voto">
@@ -58,10 +61,10 @@
 
             <div id="votoRegistrado" style="display: none;">
                 <div class="success-message">
-                    <h2>✅ Voto Registrado com Sucesso!</h2>
+                    <h2><i class="fas fa-check-circle"></i> Voto Registrado com Sucesso!</h2>
                     <p>Seu voto foi computado e não pode ser alterado.</p>
                     <button onclick="window.location.href='/resultados.html'" class="btn btn-primary">
-                        Ver Resultados
+                        <i class="fas fa-chart-bar"></i> Ver Resultados
                     </button>
                 </div>
             </div>
