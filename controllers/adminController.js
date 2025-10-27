@@ -1,15 +1,26 @@
-const { pool } = require('../server');
 const { validarCPF } = require('../utils/validarCPF');
 const bcrypt = require('bcryptjs');
+
+// Obter pool do global ou importar
+const getPool = () => {
+  if (global.pool) return global.pool;
+  const { pool } = require('../server');
+  return pool;
+};
 
 const adminController = {
   // CRUD de Usuários
   async criarUsuario(req, res) {
+    const pool = getPool();
+    
     try {
       const { cpf, nome, senha, tipo, municipio_id } = req.body;
 
+      // Limpar CPF
+      const cpfLimpo = cpf.replace(/\D/g, '');
+
       // Validações
-      if (!validarCPF(cpf)) {
+      if (!validarCPF(cpfLimpo)) {
         return res.status(400).json({ 
           success: false, 
           message: 'CPF inválido' 
@@ -33,7 +44,7 @@ const adminController = {
       // Verificar se CPF já existe
       const [usuariosExistentes] = await pool.query(
         'SELECT id FROM usuarios WHERE cpf = ?',
-        [cpf]
+        [cpfLimpo]
       );
 
       if (usuariosExistentes.length > 0) {
@@ -49,7 +60,7 @@ const adminController = {
       // Inserir usuário
       const [resultado] = await pool.query(
         'INSERT INTO usuarios (cpf, nome, senha, tipo, municipio_id, ativo) VALUES (?, ?, ?, ?, ?, 1)',
-        [cpf, nome, senhaHash, tipo, municipio_id || null]
+        [cpfLimpo, nome, senhaHash, tipo, municipio_id || null]
       );
 
       return res.json({
@@ -57,7 +68,7 @@ const adminController = {
         message: 'Usuário criado com sucesso',
         usuario: {
           id: resultado.insertId,
-          cpf,
+          cpf: cpfLimpo,
           nome,
           tipo
         }
@@ -67,16 +78,18 @@ const adminController = {
       console.error('Erro ao criar usuário:', error);
       return res.status(500).json({ 
         success: false, 
-        message: 'Erro ao criar usuário' 
+        message: 'Erro ao criar usuário: ' + error.message 
       });
     }
   },
 
   async listarUsuarios(req, res) {
+    const pool = getPool();
+    
     try {
       const [usuarios] = await pool.query(
         `SELECT u.id, u.cpf, u.nome, u.tipo, u.ativo, 
-                m.nome as municipio_nome, m.peso
+                m.nome as municipio_nome, m.id as municipio_id, m.peso
          FROM usuarios u 
          LEFT JOIN municipios m ON u.municipio_id = m.id
          ORDER BY u.nome`
@@ -91,12 +104,14 @@ const adminController = {
       console.error('Erro ao listar usuários:', error);
       return res.status(500).json({ 
         success: false, 
-        message: 'Erro ao listar usuários' 
+        message: 'Erro ao listar usuários: ' + error.message 
       });
     }
   },
 
   async atualizarUsuario(req, res) {
+    const pool = getPool();
+    
     try {
       const { id } = req.params;
       const { nome, senha, tipo, municipio_id, ativo } = req.body;
@@ -137,12 +152,19 @@ const adminController = {
 
       if (municipio_id !== undefined) {
         updates.push('municipio_id = ?');
-        params.push(municipio_id);
+        params.push(municipio_id || null);
       }
 
       if (ativo !== undefined) {
         updates.push('ativo = ?');
         params.push(ativo ? 1 : 0);
+      }
+
+      if (updates.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Nenhum campo para atualizar' 
+        });
       }
 
       query += updates.join(', ') + ' WHERE id = ?';
@@ -159,12 +181,14 @@ const adminController = {
       console.error('Erro ao atualizar usuário:', error);
       return res.status(500).json({ 
         success: false, 
-        message: 'Erro ao atualizar usuário' 
+        message: 'Erro ao atualizar usuário: ' + error.message 
       });
     }
   },
 
   async deletarUsuario(req, res) {
+    const pool = getPool();
+    
     try {
       const { id } = req.params;
 
@@ -192,13 +216,15 @@ const adminController = {
       console.error('Erro ao deletar usuário:', error);
       return res.status(500).json({ 
         success: false, 
-        message: 'Erro ao deletar usuário' 
+        message: 'Erro ao deletar usuário: ' + error.message 
       });
     }
   },
 
   // CRUD de Municípios
   async criarMunicipio(req, res) {
+    const pool = getPool();
+    
     try {
       const { nome, peso } = req.body;
 
@@ -228,12 +254,14 @@ const adminController = {
       console.error('Erro ao criar município:', error);
       return res.status(500).json({ 
         success: false, 
-        message: 'Erro ao criar município' 
+        message: 'Erro ao criar município: ' + error.message 
       });
     }
   },
 
   async listarMunicipios(req, res) {
+    const pool = getPool();
+    
     try {
       const [municipios] = await pool.query(
         'SELECT * FROM municipios ORDER BY nome'
@@ -248,12 +276,14 @@ const adminController = {
       console.error('Erro ao listar municípios:', error);
       return res.status(500).json({ 
         success: false, 
-        message: 'Erro ao listar municípios' 
+        message: 'Erro ao listar municípios: ' + error.message 
       });
     }
   },
 
   async atualizarMunicipio(req, res) {
+    const pool = getPool();
+    
     try {
       const { id } = req.params;
       const { nome, peso } = req.body;
@@ -293,12 +323,14 @@ const adminController = {
       console.error('Erro ao atualizar município:', error);
       return res.status(500).json({ 
         success: false, 
-        message: 'Erro ao atualizar município' 
+        message: 'Erro ao atualizar município: ' + error.message 
       });
     }
   },
 
   async deletarMunicipio(req, res) {
+    const pool = getPool();
+    
     try {
       const { id } = req.params;
 
@@ -326,7 +358,7 @@ const adminController = {
       console.error('Erro ao deletar município:', error);
       return res.status(500).json({ 
         success: false, 
-        message: 'Erro ao deletar município' 
+        message: 'Erro ao deletar município: ' + error.message 
       });
     }
   }

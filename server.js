@@ -23,9 +23,13 @@ const dbConfig = {
   queueLimit: 0
 };
 
+// Criar pool de conexões
 const pool = mysql.createPool(dbConfig);
 
-// Importar rotas
+// Exportar pool ANTES de importar as rotas
+global.pool = pool;
+
+// Importar rotas (após exportar pool)
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const votoRoutes = require('./routes/votoRoutes');
@@ -40,9 +44,19 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Tratamento de erros
+app.use((err, req, res, next) => {
+  console.error('Erro:', err);
+  res.status(500).json({ 
+    success: false, 
+    message: 'Erro interno do servidor' 
+  });
+});
+
 // Inicialização do servidor
 app.listen(PORT, async () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`📍 Acesse: http://localhost:${PORT}`);
   
   // Testar conexão com banco de dados
   try {
@@ -51,8 +65,12 @@ app.listen(PORT, async () => {
     connection.release();
   } catch (error) {
     console.error('❌ Erro ao conectar ao banco de dados:', error.message);
+    console.error('💡 Verifique:');
+    console.error('   1. MySQL está rodando');
+    console.error('   2. Credenciais no arquivo .env estão corretas');
+    console.error('   3. Banco de dados foi criado (execute: npm run init-db)');
   }
 });
 
-// Exportar pool para uso nas rotas
+// Exportar para uso nos controllers
 module.exports = { pool };

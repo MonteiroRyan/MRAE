@@ -1,17 +1,36 @@
-const { pool } = require('../server');
 const { validarCPF } = require('../utils/validarCPF');
 const bcrypt = require('bcryptjs');
+
+// Obter pool do global ou importar
+const getPool = () => {
+  if (global.pool) return global.pool;
+  const { pool } = require('../server');
+  return pool;
+};
 
 // Sessões ativas (em produção, use Redis ou similar)
 const sessoes = new Map();
 
 const authController = {
   async login(req, res) {
+    const pool = getPool();
+    
     try {
       const { cpf, senha } = req.body;
 
+      // Validar entrada
+      if (!cpf || !senha) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'CPF e senha são obrigatórios' 
+        });
+      }
+
+      // Limpar CPF
+      const cpfLimpo = cpf.replace(/\D/g, '');
+
       // Validar CPF
-      if (!validarCPF(cpf)) {
+      if (!validarCPF(cpfLimpo)) {
         return res.status(400).json({ 
           success: false, 
           message: 'CPF inválido' 
@@ -20,8 +39,11 @@ const authController = {
 
       // Buscar usuário no banco
       const [usuarios] = await pool.query(
-        'SELECT u.*, m.nome as municipio_nome, m.peso FROM usuarios u LEFT JOIN municipios m ON u.municipio_id = m.id WHERE u.cpf = ? AND u.ativo = 1',
-        [cpf]
+        `SELECT u.*, m.nome as municipio_nome, m.peso 
+         FROM usuarios u 
+         LEFT JOIN municipios m ON u.municipio_id = m.id 
+         WHERE u.cpf = ? AND u.ativo = 1`,
+        [cpfLimpo]
       );
 
       if (usuarios.length === 0) {
@@ -71,7 +93,7 @@ const authController = {
       console.error('Erro no login:', error);
       return res.status(500).json({ 
         success: false, 
-        message: 'Erro ao realizar login' 
+        message: 'Erro ao realizar login: ' + error.message 
       });
     }
   },
@@ -79,6 +101,13 @@ const authController = {
   async verifySession(req, res) {
     try {
       const { sessionId } = req.body;
+
+      if (!sessionId) {
+        return res.status(401).json({ 
+          success: false, 
+          message: 'Sessão não fornecida' 
+        });
+      }
 
       if (!sessoes.has(sessionId)) {
         return res.status(401).json({ 
