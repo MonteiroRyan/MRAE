@@ -1,5 +1,6 @@
 let chartQuantidade, chartPeso;
 let eventSource;
+let eventoId;
 
 document.addEventListener('DOMContentLoaded', async () => {
     const usuario = await verificarAutenticacao();
@@ -7,11 +8,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('nomeUsuario').textContent = usuario.nome;
 
+    // Obter ID do evento da URL
+    const urlParams = new URLSearchParams(window.location.search);
+    eventoId = urlParams.get('evento');
+
+    if (!eventoId) {
+        alert('Evento não especificado');
+        window.location.href = '/eventos.html';
+        return;
+    }
+
+    await carregarTituloEvento();
     iniciarStreamResultados();
 });
 
+async function carregarTituloEvento() {
+    try {
+        const response = await request(`/eventos/${eventoId}`);
+        document.getElementById('eventoTitulo').textContent = response.evento.titulo;
+    } catch (error) {
+        console.error('Erro ao carregar evento:', error);
+    }
+}
+
 function iniciarStreamResultados() {
-    eventSource = new EventSource(`${API_URL}/votos/resultados/stream`);
+    eventSource = new EventSource(`${API_URL}/votos/resultados/${eventoId}/stream`);
 
     eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -31,7 +52,7 @@ function atualizarResultados(data) {
     document.getElementById('totalVotos').textContent = data.totais.votosRegistrados;
     document.getElementById('pesoTotal').textContent = data.totais.pesoTotal.toFixed(2);
     document.getElementById('participacao').textContent = data.totais.percentualParticipacao + '%';
-    document.getElementById('usuariosCadastrados').textContent = data.totais.usuariosCadastrados;
+    document.getElementById('totalParticipantes').textContent = data.totais.participantesEvento;
 
     // Atualizar tabela
     atualizarTabelaResultados(data.resultados);
@@ -80,7 +101,7 @@ function atualizarGraficos(resultados) {
         'rgba(16, 185, 129, 0.8)', // Verde
         'rgba(239, 68, 68, 0.8)',  // Vermelho
         'rgba(245, 158, 11, 0.8)', // Amarelo
-        'rgba(100, 116, 139, 0.8)' // Cinza
+        'rgba(240, 155, 190, 0.8)' // Rosa
     ];
 
     // Gráfico de Quantidade
