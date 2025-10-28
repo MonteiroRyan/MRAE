@@ -33,11 +33,13 @@ global.pool = pool;
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const votoRoutes = require('./routes/votoRoutes');
+const eventoRoutes = require('./routes/eventoRoutes');
 
 // Usar rotas
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/votos', votoRoutes);
+app.use('/api/eventos', eventoRoutes);
 
 // Rota principal
 app.get('/', (req, res) => {
@@ -53,22 +55,24 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Limpar sessões expiradas a cada 30 minutos
+const authController = require('./controllers/authController');
+setInterval(() => {
+  authController.limparSessoesExpiradas();
+}, 30 * 60 * 1000);
+
 // Inicialização do servidor
 app.listen(PORT, async () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
-  console.log(`📍 Acesse: http://localhost:${PORT}`);
-  
   // Testar conexão com banco de dados
   try {
     const connection = await pool.getConnection();
     console.log('✅ Conectado ao banco de dados MySQL');
     connection.release();
+    
+    // Limpar sessões expiradas ao iniciar
+    authController.limparSessoesExpiradas();
   } catch (error) {
-    console.error('❌ Erro ao conectar ao banco de dados:', error.message);
-    console.error('💡 Verifique:');
-    console.error('   1. MySQL está rodando');
-    console.error('   2. Credenciais no arquivo .env estão corretas');
-    console.error('   3. Banco de dados foi criado (execute: npm run init-db)');
+    console.error('Erro ao conectar ao banco de dados:', error.message);
   }
 });
 
