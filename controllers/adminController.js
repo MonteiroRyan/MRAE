@@ -1,7 +1,6 @@
 const { validarCPF } = require('../utils/validarCPF');
 const bcrypt = require('bcryptjs');
 
-// Obter pool do global ou importar
 const getPool = () => {
   if (global.pool) return global.pool;
   const { pool } = require('../server');
@@ -27,10 +26,18 @@ const adminController = {
         });
       }
 
-      if (!nome || !senha || !tipo) {
+      if (!nome || !tipo) {
         return res.status(400).json({ 
           success: false, 
-          message: 'Todos os campos são obrigatórios' 
+          message: 'Nome e tipo são obrigatórios' 
+        });
+      }
+
+      // Validar senha apenas para ADMIN
+      if (tipo === 'ADMIN' && !senha) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Senha é obrigatória para administradores' 
         });
       }
 
@@ -54,8 +61,11 @@ const adminController = {
         });
       }
 
-      // Hash da senha
-      const senhaHash = await bcrypt.hash(senha, 10);
+      // Hash da senha apenas se for ADMIN
+      let senhaHash = null;
+      if (tipo === 'ADMIN') {
+        senhaHash = await bcrypt.hash(senha, 10);
+      }
 
       // Inserir usuário
       const [resultado] = await pool.query(
@@ -65,7 +75,9 @@ const adminController = {
 
       return res.json({
         success: true,
-        message: 'Usuário criado com sucesso',
+        message: tipo === 'ADMIN' 
+          ? 'Usuário criado com sucesso' 
+          : 'Usuário criado com sucesso. Login apenas com CPF (sem senha).',
         usuario: {
           id: resultado.insertId,
           cpf: cpfLimpo,
@@ -118,7 +130,7 @@ const adminController = {
 
       // Verificar se usuário existe
       const [usuariosExistentes] = await pool.query(
-        'SELECT id FROM usuarios WHERE id = ?',
+        'SELECT id, tipo FROM usuarios WHERE id = ?',
         [id]
       );
 
@@ -139,7 +151,8 @@ const adminController = {
         params.push(nome);
       }
 
-      if (senha) {
+      // Senha apenas para ADMIN
+      if (senha && (tipo === 'ADMIN' || usuariosExistentes[0].tipo === 'ADMIN')) {
         const senhaHash = await bcrypt.hash(senha, 10);
         updates.push('senha = ?');
         params.push(senhaHash);
@@ -148,6 +161,11 @@ const adminController = {
       if (tipo) {
         updates.push('tipo = ?');
         params.push(tipo);
+        
+        // Se mudou para não-admin, remover senha
+        if (tipo !== 'ADMIN') {
+          updates.push('senha = NULL');
+        }
       }
 
       if (municipio_id !== undefined) {
@@ -221,7 +239,7 @@ const adminController = {
     }
   },
 
-  // CRUD de Municípios
+  // CRUD de Municípios (mantém o mesmo)
   async criarMunicipio(req, res) {
     const pool = getPool();
     
