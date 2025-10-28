@@ -28,11 +28,12 @@
                 <p><strong><i class="fas fa-id-card"></i> CPF:</strong> <span id="infoCpf"></span></p>
                 <p><strong><i class="fas fa-city"></i> Município:</strong> <span id="infoMunicipio"></span></p>
                 <p><strong><i class="fas fa-weight"></i> Peso do voto:</strong> <span id="infoPeso"></span></p>
+                <p><strong><i class="fas fa-calendar-check"></i> Evento:</strong> <span id="infoEvento"></span></p>
             </div>
 
             <div id="conteudoVotacao">
                 <h2><i class="fas fa-hand-point-up"></i> Realize seu voto</h2>
-                <p class="descricao">Selecione uma das opções abaixo. Você só pode votar uma vez.</p>
+                <p class="descricao">Selecione uma das opções abaixo. Você só pode votar uma vez por evento.</p>
 
                 <div class="opcoes-voto">
                     <button onclick="votar('SIM')" class="btn-voto btn-sim">
@@ -63,7 +64,7 @@
                 <div class="success-message">
                     <h2><i class="fas fa-check-circle"></i> Voto Registrado com Sucesso!</h2>
                     <p>Seu voto foi computado e não pode ser alterado.</p>
-                    <button onclick="window.location.href='/resultados.html'" class="btn btn-primary">
+                    <button onclick="verResultados()" class="btn btn-primary">
                         <i class="fas fa-chart-bar"></i> Ver Resultados
                     </button>
                 </div>

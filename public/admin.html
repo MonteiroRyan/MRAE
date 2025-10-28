@@ -22,19 +22,50 @@
 
     <div class="container fade-in">
         <div class="tabs">
-            <button class="tab-button active" onclick="mudarTab('usuarios')">
+            <button class="tab-button active" onclick="mudarTab('eventos')">
+                <i class="fas fa-calendar-check"></i> Eventos
+            </button>
+            <button class="tab-button" onclick="mudarTab('usuarios')">
                 <i class="fas fa-users"></i> Usuários
             </button>
             <button class="tab-button" onclick="mudarTab('municipios')">
                 <i class="fas fa-city"></i> Municípios
             </button>
-            <button class="tab-button" onclick="mudarTab('resultados')">
-                <i class="fas fa-chart-bar"></i> Resultados
-            </button>
+        </div>
+
+        <!-- Tab Eventos -->
+        <div id="tab-eventos" class="tab-content active">
+            <div class="section-header">
+                <h2><i class="fas fa-calendar-check"></i> Gerenciar Eventos de Votação</h2>
+                <button onclick="abrirModalEvento()" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Novo Evento
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-hashtag"></i> ID</th>
+                            <th><i class="fas fa-heading"></i> Título</th>
+                            <th><i class="fas fa-calendar"></i> Data Início</th>
+                            <th><i class="fas fa-calendar"></i> Data Fim</th>
+                            <th><i class="fas fa-users"></i> Participantes</th>
+                            <th><i class="fas fa-user-check"></i> Presentes</th>
+                            <th><i class="fas fa-vote-yea"></i> Votos</th>
+                            <th><i class="fas fa-signal"></i> Status</th>
+                            <th><i class="fas fa-cog"></i> Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaEventos">
+                        <tr><td colspan="9" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Tab Usuários -->
-        <div id="tab-usuarios" class="tab-content active">
+        <div id="tab-usuarios" class="tab-content">
             <div class="section-header">
                 <h2><i class="fas fa-users"></i> Gerenciar Usuários</h2>
                 <button onclick="abrirModalUsuario()" class="btn btn-primary">
@@ -86,11 +117,71 @@
                 </table>
             </div>
         </div>
+    </div>
 
-        <!-- Tab Resultados -->
-        <div id="tab-resultados" class="tab-content">
-            <h2><i class="fas fa-chart-line"></i> Resultados da Votação</h2>
-            <div id="resultadosContainer"></div>
+    <!-- Modal Evento -->
+    <div id="modalEvento" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModalEvento()">×</span>
+            <h2 id="tituloModalEvento"><i class="fas fa-calendar-plus"></i> Novo Evento de Votação</h2>
+            <form id="formEvento">
+                <input type="hidden" id="eventoId">
+                
+                <div class="form-group">
+                    <label for="eventoTitulo"><i class="fas fa-heading"></i> Título *</label>
+                    <input type="text" id="eventoTitulo" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="eventoDescricao"><i class="fas fa-align-left"></i> Descrição</label>
+                    <textarea id="eventoDescricao" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="eventoDataInicio"><i class="fas fa-calendar-alt"></i> Data/Hora Início *</label>
+                    <input type="datetime-local" id="eventoDataInicio" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="eventoDataFim"><i class="fas fa-calendar-alt"></i> Data/Hora Fim *</label>
+                    <input type="datetime-local" id="eventoDataFim" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="eventoQuorum"><i class="fas fa-users"></i> Quórum Mínimo *</label>
+                    <input type="number" id="eventoQuorum" min="1" value="10" required>
+                    <small>Número mínimo de pessoas presentes para liberar votação</small>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-user-plus"></i> Participantes</label>
+                    <div id="listaParticipantes" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem;">
+                        <p class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando usuários...</p>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" onclick="fecharModalEvento()" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
+
+                <div id="mensagemEvento" class="mensagem"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes do Evento -->
+    <div id="modalDetalhesEvento" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModalDetalhesEvento()">×</span>
+            <h2><i class="fas fa-info-circle"></i> Detalhes do Evento</h2>
+            <div id="conteudoDetalhesEvento">
+                <p class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</p>
+            </div>
         </div>
     </div>
 
@@ -113,14 +204,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="usuarioSenha"><i class="fas fa-lock"></i> Senha *</label>
-                    <input type="password" id="usuarioSenha">
-                    <small>Deixe em branco para manter a senha atual (ao editar)</small>
-                </div>
-
-                <div class="form-group">
                     <label for="usuarioTipo"><i class="fas fa-tag"></i> Tipo *</label>
-                    <select id="usuarioTipo" required onchange="toggleMunicipio()">
+                    <select id="usuarioTipo" required onchange="toggleCamposUsuario()">
                         <option value="">Selecione...</option>
                         <option value="ADMIN">Administrador</option>
                         <option value="PREFEITO">Prefeito</option>
@@ -128,7 +213,13 @@
                     </select>
                 </div>
 
-                <div class="form-group" id="grupoMunicipio">
+                <div class="form-group" id="grupoSenha" style="display: none;">
+                    <label for="usuarioSenha"><i class="fas fa-lock"></i> Senha *</label>
+                    <input type="password" id="usuarioSenha">
+                    <small>Apenas para administradores. Deixe em branco para manter (ao editar)</small>
+                </div>
+
+                <div class="form-group" id="grupoMunicipio" style="display: none;">
                     <label for="usuarioMunicipio"><i class="fas fa-city"></i> Município *</label>
                     <select id="usuarioMunicipio">
                         <option value="">Selecione...</option>

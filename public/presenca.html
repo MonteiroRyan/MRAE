@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Presença</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1><i class="fas fa-clipboard-check"></i> Lista de Presença</h1>
+            <div class="nav-right">
+                <span><i class="fas fa-user-circle"></i> <span id="nomeUsuario"></span></span>
+                <button onclick="logout()" class="btn btn-secondary">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container fade-in">
+        <div class="votacao-box">
+            <div class="info-usuario">
+                <h2><i class="fas fa-info-circle"></i> Informações do Evento</h2>
+                <p><strong><i class="fas fa-heading"></i> Título:</strong> <span id="eventoTitulo"></span></p>
+                <p><strong><i class="fas fa-align-left"></i> Descrição:</strong> <span id="eventoDescricao"></span></p>
+                <p><strong><i class="fas fa-calendar"></i> Período:</strong> <span id="eventoPeriodo"></span></p>
+            </div>
+
+            <div id="conteudoPresenca">
+                <!-- Alerta de Quórum -->
+                <div id="alertaQuorum" class="quorum-alerta">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Aguardando quórum mínimo:</strong> 
+                    <span id="textoQuorum"></span>
+                </div>
+
+                <div id="quorumAtingido" class="quorum-atingido" style="display: none;">
+                    <i class="fas fa-check-circle"></i>
+                    <strong>Quórum atingido!</strong> A votação está liberada.
+                </div>
+
+                <!-- Contador de Presença -->
+                <div class="lista-presenca">
+                    <h3><i class="fas fa-users"></i> Participantes Presentes</h3>
+                    <div class="contador-presenca">
+                        <span id="contadorPresentes">0</span> / <span id="contadorTotal">0</span>
+                    </div>
+
+                    <!-- Grid de Participantes -->
+                    <div class="participantes-grid" id="participantesGrid">
+                        <p class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</p>
+                    </div>
+                </div>
+
+                <!-- Botão de Presença -->
+                <div id="botaoPresencaContainer" style="text-align: center; margin-top: 2rem;">
+                    <button id="btnConfirmarPresenca" onclick="confirmarPresenca()" class="btn btn-success" style="font-size: 1.2rem; padding: 1.5rem 3rem;">
+                        <i class="fas fa-hand-paper"></i> Confirmar Minha Presença
+                    </button>
+                </div>
+
+                <div id="presencaConfirmada" style="display: none; text-align: center; margin-top: 2rem;">
+                    <div class="success-message">
+                        <h2><i class="fas fa-check-circle"></i> Presença Confirmada!</h2>
+                        <p id="mensagemAguardo"></p>
+                    </div>
+                </div>
+
+                <!-- Botão para ir à votação -->
+                <div id="botaoVotacao" style="display: none; text-align: center; margin-top: 2rem;">
+                    <button onclick="irParaVotacao()" class="btn btn-primary" style="font-size: 1.2rem; padding: 1.5rem 3rem;">
+                        <i class="fas fa-vote-yea"></i> Ir para Votação
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/utils.js"></script>
+    <script src="/js/presenca.js"></script>
+</body>
+</html>

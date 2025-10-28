@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Votação - Login</title>
     <link rel="stylesheet" href="/css/style.css">
-    <!-- Font Awesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -24,11 +23,11 @@
                     <input type="text" id="cpf" name="cpf" placeholder="000.000.000-00" required maxlength="14">
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" id="senhaGroup" style="display: none;">
                     <label for="senha">
-                        <i class="fas fa-lock"></i> Senha
+                        <i class="fas fa-lock"></i> Senha (Apenas para Administradores)
                     </label>
-                    <input type="password" id="senha" name="senha" placeholder="Digite sua senha" required>
+                    <input type="password" id="senha" name="senha" placeholder="Digite sua senha">
                 </div>
 
                 <button type="submit" class="btn btn-primary">
@@ -39,7 +38,8 @@
             </form>
 
             <div class="info">
-                <i class="fas fa-info-circle"></i> Apenas prefeitos e representantes cadastrados podem acessar
+                <i class="fas fa-info-circle"></i> <strong>Prefeitos e Representantes:</strong> Login apenas com CPF<br>
+                <i class="fas fa-shield-alt"></i> <strong>Administradores:</strong> Login com CPF e senha
             </div>
         </div>
     </div>
