@@ -1,5 +1,6 @@
 const { validarCPF } = require('../utils/validarCPF');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 // Obter pool do global ou importar
 const getPool = () => {
@@ -7,9 +8,6 @@ const getPool = () => {
   const { pool } = require('../server');
   return pool;
 };
-
-// Sessões ativas (em produção, use Redis ou similar)
-const sessoes = new Map();
 
 const authController = {
   async login(req, res) {
@@ -19,10 +17,10 @@ const authController = {
       const { cpf, senha } = req.body;
 
       // Validar entrada
-      if (!cpf || !senha) {
+      if (!cpf) {
         return res.status(400).json({ 
           success: false, 
-          message: 'CPF e senha são obrigatórios' 
+          message: 'CPF é obrigatório' 
         });
       }
 
@@ -55,26 +53,35 @@ const authController = {
 
       const usuario = usuarios[0];
 
-      // Verificar senha
-      const senhaValida = await bcrypt.compare(senha, usuario.senha);
-      if (!senhaValida) {
-        return res.status(401).json({ 
-          success: false, 
-          message: 'Senha incorreta' 
-        });
-      }
+      // Verificar senha (APENAS PARA ADMIN)
+      if (usuario.tipo === 'ADMIN') {
+        if (!senha) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Senha é obrigatória para administradores' 
+          });
+        }
 
-      // Criar sessão
-      const sessionId = require('crypto').randomBytes(32).toString('hex');
-      sessoes.set(sessionId, {
-        id: usuario.id,
-        cpf: usuario.cpf,
-        nome: usuario.nome,
-        tipo: usuario.tipo,
-        municipio_id: usuario.municipio_id,
-        municipio_nome: usuario.municipio_nome,
-        peso: usuario.peso
-      });
+        const senhaValida = await bcrypt.compare(senha, usuario.senha);
+        if (!senhaValida) {
+          return res.status(401).json({ 
+            success: false, 
+            message: 'Senha incorreta' 
+          });
+        }
+      }
+      // Prefeitos e Representantes não precisam de senha
+
+      // Criar sessão no banco de dados
+      const sessionId = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+      const ipAddress = req.ip || req.connection.remoteAddress;
+      const userAgent = req.headers['user-agent'];
+
+      await pool.query(
+        'INSERT INTO sessoes (session_id, usuario_id, ip_address, user_agent, expires_at) VALUES (?, ?, ?, ?, ?)',
+        [sessionId, usuario.id, ipAddress, userAgent, expiresAt]
+      );
 
       return res.json({
         success: true,
@@ -99,6 +106,8 @@ const authController = {
   },
 
   async verifySession(req, res) {
+    const pool = getPool();
+    
     try {
       const { sessionId } = req.body;
 
@@ -109,17 +118,37 @@ const authController = {
         });
       }
 
-      if (!sessoes.has(sessionId)) {
+      // Buscar sessão no banco de dados
+      const [sessoes] = await pool.query(
+        `SELECT s.*, u.id, u.cpf, u.nome, u.tipo, u.municipio_id, 
+                m.nome as municipio_nome, m.peso
+         FROM sessoes s
+         INNER JOIN usuarios u ON s.usuario_id = u.id
+         LEFT JOIN municipios m ON u.municipio_id = m.id
+         WHERE s.session_id = ? AND s.expires_at > NOW() AND u.ativo = 1`,
+        [sessionId]
+      );
+
+      if (sessoes.length === 0) {
         return res.status(401).json({ 
           success: false, 
-          message: 'Sessão inválida' 
+          message: 'Sessão inválida ou expirada' 
         });
       }
 
-      const usuario = sessoes.get(sessionId);
+      const sessao = sessoes[0];
+
       return res.json({ 
         success: true, 
-        usuario 
+        usuario: {
+          id: sessao.id,
+          cpf: sessao.cpf,
+          nome: sessao.nome,
+          tipo: sessao.tipo,
+          municipio_id: sessao.municipio_id,
+          municipio_nome: sessao.municipio_nome,
+          peso: sessao.peso
+        }
       });
 
     } catch (error) {
@@ -132,9 +161,15 @@ const authController = {
   },
 
   async logout(req, res) {
+    const pool = getPool();
+    
     try {
       const { sessionId } = req.body;
-      sessoes.delete(sessionId);
+      
+      if (sessionId) {
+        // Remover sessão do banco de dados
+        await pool.query('DELETE FROM sessoes WHERE session_id = ?', [sessionId]);
+      }
       
       return res.json({ 
         success: true, 
@@ -150,9 +185,16 @@ const authController = {
     }
   },
 
-  // Função auxiliar para obter sessão
-  getSessao(sessionId) {
-    return sessoes.get(sessionId);
+  // Limpar sessões expiradas (executar periodicamente)
+  async limparSessoesExpiradas() {
+    const pool = getPool();
+    
+    try {
+      await pool.query('DELETE FROM sessoes WHERE expires_at < NOW()');
+      console.log('🧹 Sessões expiradas limpas');
+    } catch (error) {
+      console.error('Erro ao limpar sessões:', error);
+    }
   }
 };
 
