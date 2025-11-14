@@ -10,8 +10,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     document.getElementById('nomeUsuario').textContent = usuario.nome;
+    
+    // Mostrar mensagem de presença confirmada (vem do localStorage após login)
+    const eventosPresenca = localStorage.getItem('eventosPresenca');
+    if (eventosPresenca) {
+        const eventos = JSON.parse(eventosPresenca);
+        if (eventos.length > 0) {
+            const eventosNovos = eventos.filter(e => e.automatica);
+            if (eventosNovos.length > 0) {
+                mostrarMensagemPresenca(eventosNovos);
+            }
+        }
+        localStorage.removeItem('eventosPresenca');
+    }
+    
     carregarEventos();
 });
+
+function mostrarMensagemPresenca(eventos) {
+    const container = document.getElementById('listaEventos');
+    const mensagem = document.createElement('div');
+    mensagem.className = 'mensagem success';
+    mensagem.style.marginBottom = '2rem';
+    mensagem.innerHTML = `
+        <h3><i class="fas fa-check-circle"></i> Presença Confirmada Automaticamente!</h3>
+        <p>Sua presença foi confirmada nos seguintes eventos:</p>
+        <ul style="margin-top: 1rem; margin-left: 2rem;">
+            ${eventos.map(e => `<li>${e.titulo}</li>`).join('')}
+        </ul>
+        <p style="margin-top: 1rem;"><small>Aguarde o administrador liberar a votação.</small></p>
+    `;
+    container.insertBefore(mensagem, container.firstChild);
+}
 
 async function carregarEventos() {
     try {
@@ -28,12 +58,12 @@ async function carregarEventos() {
 function renderizarEventos() {
     const container = document.getElementById('listaEventos');
     
-    // Filtrar apenas eventos disponíveis para o usuário
-    const eventosAtivos = eventosDisponiveis.filter(e => 
-        e.status === 'AGUARDANDO_QUORUM' || e.status === 'ATIVO'
+    // Filtrar eventos disponíveis para o usuário
+    const eventosVisiveis = eventosDisponiveis.filter(e => 
+        e.status !== 'ENCERRADO' && e.periodo_status === 'DENTRO_PERIODO'
     );
 
-    if (eventosAtivos.length === 0) {
+    if (eventosVisiveis.length === 0) {
         container.innerHTML = `
             <div class="mensagem info">
                 <i class="fas fa-info-circle"></i>
@@ -43,19 +73,33 @@ function renderizarEventos() {
         return;
     }
 
-    container.innerHTML = eventosAtivos.map(evento => {
+    container.innerHTML = eventosVisiveis.map(evento => {
         const dataInicio = new Date(evento.data_inicio).toLocaleString('pt-BR');
         const dataFim = new Date(evento.data_fim).toLocaleString('pt-BR');
         
         let badgeStatus = '';
         let textoAcao = '';
+        let botaoAcao = '';
         
-        if (evento.status === 'AGUARDANDO_QUORUM') {
-            badgeStatus = '<span class="badge badge-warning">Aguardando Quórum</span>';
-            textoAcao = 'Confirmar Presença';
+        if (evento.status === 'RASCUNHO') {
+            badgeStatus = '<span class="badge badge-info">Em Preparação</span>';
+            textoAcao = 'Presença confirmada automaticamente. Aguardando início do evento.';
+        } else if (evento.status === 'AGUARDANDO_INICIO') {
+            badgeStatus = '<span class="badge badge-warning">Aguardando Liberação</span>';
+            textoAcao = 'Presença confirmada. Aguardando administrador liberar a votação.';
         } else if (evento.status === 'ATIVO') {
-            badgeStatus = '<span class="badge badge-success">Votação Ativa</span>';
-            textoAcao = 'Votar Agora';
+            badgeStatus = '<span class="badge badge-success">Votação Liberada</span>';
+            textoAcao = 'Votação liberada! Você pode votar agora.';
+            botaoAcao = `
+                <button onclick="irParaVotacao(${evento.id})" class="btn btn-success">
+                    <i class="fas fa-vote-yea"></i> Votar Agora
+                </button>
+            `;
+        }
+
+        let tipoVotacao = '';
+        if (evento.votacao_multipla) {
+            tipoVotacao = `<p><i class="fas fa-check-double"></i> <strong>Votação Múltipla:</strong> Até ${evento.votos_maximos} opções</p>`;
         }
 
         return `
@@ -66,21 +110,18 @@ function renderizarEventos() {
                 </div>
                 <div class="evento-body">
                     <p><i class="fas fa-align-left"></i> ${evento.descricao || 'Sem descrição'}</p>
+                    ${tipoVotacao}
                     <p><i class="fas fa-calendar"></i> <strong>Início:</strong> ${dataInicio}</p>
                     <p><i class="fas fa-calendar"></i> <strong>Término:</strong> ${dataFim}</p>
                     <p><i class="fas fa-users"></i> <strong>Participantes:</strong> ${evento.total_participantes}</p>
-                    <p><i class="fas fa-user-check"></i> <strong>Presentes:</strong> ${evento.total_presentes} / ${evento.quorum_minimo} (quórum)</p>
+                    <p><i class="fas fa-user-check"></i> <strong>Presentes:</strong> ${evento.total_presentes}</p>
                     ${evento.total_votos > 0 ? `<p><i class="fas fa-vote-yea"></i> <strong>Votos:</strong> ${evento.total_votos}</p>` : ''}
+                    <div class="info" style="margin-top: 1rem;">
+                        <i class="fas fa-check-circle"></i> ${textoAcao}
+                    </div>
                 </div>
                 <div class="evento-footer">
-                    ${evento.status === 'AGUARDANDO_QUORUM' 
-                        ? `<button onclick="irParaPresenca(${evento.id})" class="btn btn-primary">
-                            <i class="fas fa-hand-paper"></i> ${textoAcao}
-                           </button>`
-                        : `<button onclick="irParaVotacao(${evento.id})" class="btn btn-success">
-                            <i class="fas fa-vote-yea"></i> ${textoAcao}
-                           </button>`
-                    }
+                    ${botaoAcao}
                     <button onclick="verResultados(${evento.id})" class="btn btn-secondary">
                         <i class="fas fa-chart-bar"></i> Ver Resultados
                     </button>
@@ -88,10 +129,6 @@ function renderizarEventos() {
             </div>
         `;
     }).join('');
-}
-
-function irParaPresenca(eventoId) {
-    window.location.href = `/presenca.html?evento=${eventoId}`;
 }
 
 function irParaVotacao(eventoId) {

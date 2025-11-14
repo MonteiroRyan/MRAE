@@ -48,6 +48,7 @@
                         <tr>
                             <th><i class="fas fa-hashtag"></i> ID</th>
                             <th><i class="fas fa-heading"></i> Título</th>
+                            <th><i class="fas fa-vote-yea"></i> Tipo</th>
                             <th><i class="fas fa-calendar"></i> Data Início</th>
                             <th><i class="fas fa-calendar"></i> Data Fim</th>
                             <th><i class="fas fa-users"></i> Participantes</th>
@@ -58,7 +59,7 @@
                         </tr>
                     </thead>
                     <tbody id="tabelaEventos">
-                        <tr><td colspan="9" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>
+                        <tr><td colspan="10" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -121,7 +122,7 @@
 
     <!-- Modal Evento -->
     <div id="modalEvento" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 800px;">
             <span class="close" onclick="fecharModalEvento()">×</span>
             <h2 id="tituloModalEvento"><i class="fas fa-calendar-plus"></i> Novo Evento de Votação</h2>
             <form id="formEvento">
@@ -129,7 +130,8 @@
                 
                 <div class="form-group">
                     <label for="eventoTitulo"><i class="fas fa-heading"></i> Título *</label>
-                    <input type="text" id="eventoTitulo" required>
+                    <textarea id="eventoTitulo" required rows="2" style="resize: vertical;" placeholder="Ex: Eleição para Presidente da Associação 2025"></textarea>
+                    <small>Use um título descritivo para que os votantes saibam em que estão votando (até 500 caracteres)</small>
                 </div>
 
                 <div class="form-group">
@@ -138,19 +140,56 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="eventoTipoVotacao"><i class="fas fa-vote-yea"></i> Tipo de Votação *</label>
+                    <select id="eventoTipoVotacao" required>
+                        <option value="">Selecione...</option>
+                        <option value="SIM_NAO">Sim/Não/Abstenção/Ausente</option>
+                        <option value="BINARIO">Binário (Sim/Não)</option>
+                        <option value="APROVACAO">Por Aprovação (Aprovar/Reprovar/Abstenção)</option>
+                        <option value="ALTERNATIVAS">Por Alternativas (Múltiplas Opções)</option>
+                    </select>
+                    <small>Escolha o tipo de votação adequado para o evento</small>
+                </div>
+
+                <div class="form-group" id="grupoOpcoesVotacao" style="display: none;">
+                    <label><i class="fas fa-list"></i> Opções de Votação *</label>
+                    <div id="listaOpcoesVotacao" style="margin-bottom: 0.5rem;">
+                        <!-- Opções serão adicionadas aqui -->
+                    </div>
+                    <button type="button" onclick="adicionarOpcaoVotacao()" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-plus"></i> Adicionar Opção
+                    </button>
+                    <small>Adicione os candidatos ou alternativas. "Voto em Branco" e "Nenhuma das alternativas" serão adicionados automaticamente.</small>
+                </div>
+
+                <div class="form-group" id="grupoVotacaoMultipla" style="display: none;">
+                    <label>
+                        <input type="checkbox" id="eventoVotacaoMultipla" onchange="toggleVotosMaximos()">
+                        <i class="fas fa-check-double"></i> Permitir votação em múltiplas opções
+                    </label>
+                    <div id="grupoVotosMaximos" style="display: none; margin-top: 1rem;">
+                        <label for="eventoVotosMaximos"><i class="fas fa-sort-numeric-up"></i> Quantidade máxima de votos por município *</label>
+                        <input type="number" id="eventoVotosMaximos" min="1" max="10" value="1">
+                        <small>Quantos candidatos/opções cada município pode votar</small>
+                    </div>
+                </div>
+
+                <div class="form-group">
                     <label for="eventoDataInicio"><i class="fas fa-calendar-alt"></i> Data/Hora Início *</label>
                     <input type="datetime-local" id="eventoDataInicio" required>
+                    <small>A votação só será permitida a partir desta data</small>
                 </div>
 
                 <div class="form-group">
                     <label for="eventoDataFim"><i class="fas fa-calendar-alt"></i> Data/Hora Fim *</label>
                     <input type="datetime-local" id="eventoDataFim" required>
+                    <small>A votação será bloqueada após esta data</small>
                 </div>
 
                 <div class="form-group">
-                    <label for="eventoQuorum"><i class="fas fa-users"></i> Quórum Mínimo *</label>
-                    <input type="number" id="eventoQuorum" min="1" value="10" required>
-                    <small>Número mínimo de pessoas presentes para liberar votação</small>
+                    <label for="eventoPesoQuorum"><i class="fas fa-percentage"></i> Quórum Mínimo (% de Peso) *</label>
+                    <input type="number" id="eventoPesoQuorum" min="0" max="100" step="0.01" value="60" required>
+                    <small>Percentual de peso necessário para informação de quórum (padrão: 60%)</small>
                 </div>
 
                 <div class="form-group">
@@ -280,7 +319,15 @@
         </div>
     </div>
 
+    <script src="/js/modal-confirm.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/admin.js"></script>
+    <script>
+        function toggleVotosMaximos() {
+            const checkbox = document.getElementById('eventoVotacaoMultipla');
+            const grupo = document.getElementById('grupoVotosMaximos');
+            grupo.style.display = checkbox.checked ? 'block' : 'none';
+        }
+    </script>
 </body>
 </html>

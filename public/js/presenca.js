@@ -7,12 +7,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('nomeUsuario').textContent = usuario.nome;
 
-    // Obter ID do evento da URL
     const urlParams = new URLSearchParams(window.location.search);
     const eventoId = urlParams.get('evento');
 
     if (!eventoId) {
-        alert('Evento não especificado');
+        await alertCustom('Evento não especificado', 'Erro', 'error');
         window.location.href = '/eventos.html';
         return;
     }
@@ -34,10 +33,18 @@ async function carregarEvento(eventoId) {
         const dataFim = new Date(eventoAtual.data_fim).toLocaleString('pt-BR');
         document.getElementById('eventoPeriodo').textContent = `${dataInicio} - ${dataFim}`;
 
+        const tiposVotacao = {
+            'BINARIO': 'Binário (Sim/Não)',
+            'APROVACAO': 'Por Aprovação',
+            'ALTERNATIVAS': 'Por Alternativas',
+            'SIM_NAO': 'Sim/Não/Abstenção/Ausente'
+        };
+        document.getElementById('eventoTipo').textContent = tiposVotacao[eventoAtual.tipo_votacao] || eventoAtual.tipo_votacao;
+
         atualizarListaPresenca();
     } catch (error) {
         console.error('Erro ao carregar evento:', error);
-        alert('Erro ao carregar evento');
+        await alertCustom('Erro ao carregar evento', 'Erro', 'error');
         window.location.href = '/eventos.html';
     }
 }
@@ -45,57 +52,78 @@ async function carregarEvento(eventoId) {
 async function verificarPresenca(eventoId) {
     const usuario = getUsuario();
     
-    // Verificar se já confirmou presença
     const participante = eventoAtual.participantes.find(p => p.usuario_id === usuario.id);
     
     if (participante && participante.presente) {
         document.getElementById('botaoPresencaContainer').style.display = 'none';
         document.getElementById('presencaConfirmada').style.display = 'block';
         
-        // Verificar se quórum foi atingido
         if (eventoAtual.status === 'ATIVO') {
-            document.getElementById('mensagemAguardo').textContent = 'O quórum foi atingido. Você pode votar agora!';
+            document.getElementById('mensagemAguardo').innerHTML = `
+                <i class="fas fa-check-circle"></i> O administrador iniciou a votação. Você pode votar agora!
+            `;
             document.getElementById('botaoVotacao').style.display = 'block';
         } else {
-            document.getElementById('mensagemAguardo').textContent = 'Aguardando outros participantes confirmarem presença...';
+            document.getElementById('mensagemAguardo').innerHTML = `
+                <i class="fas fa-clock"></i> Aguardando administrador iniciar a votação...
+            `;
         }
     }
 }
 
 function atualizarListaPresenca() {
-    const presentes = eventoAtual.participantes.filter(p => p.presente).length;
-    const total = eventoAtual.participantes.length;
-    const quorum = eventoAtual.quorum_minimo;
+    const participantesPresentes = eventoAtual.participantes.filter(p => p.presente);
+    const pesoPresente = participantesPresentes.reduce((sum, p) => sum + parseFloat(p.peso || 0), 0);
+    
+    const participantesTotal = eventoAtual.participantes;
+    const pesoTotal = participantesTotal.reduce((sum, p) => sum + parseFloat(p.peso || 0), 0);
+    
+    const percentualPeso = pesoTotal > 0 ? (pesoPresente / pesoTotal * 100).toFixed(2) : 0;
+    const quorumMinimo = eventoAtual.peso_minimo_quorum;
 
-    document.getElementById('contadorPresentes').textContent = presentes;
-    document.getElementById('contadorTotal').textContent = total;
-    document.getElementById('textoQuorum').textContent = `${presentes} de ${quorum} pessoas presentes`;
+    document.getElementById('contadorPresentes').textContent = participantesPresentes.length;
+    document.getElementById('contadorTotal').textContent = participantesTotal.length;
+    document.getElementById('pesoPresente').textContent = pesoPresente.toFixed(2);
+    document.getElementById('pesoTotal').textContent = pesoTotal.toFixed(2);
+    document.getElementById('percentualPeso').textContent = percentualPeso;
+    document.getElementById('quorumMinimo').textContent = quorumMinimo;
 
-    // Atualizar alerta de quórum
-    if (presentes >= quorum) {
+    document.getElementById('textoQuorum').innerHTML = `
+        <strong>${percentualPeso}%</strong> de ${quorumMinimo}% necessário (Peso: ${pesoPresente.toFixed(2)} de ${pesoTotal.toFixed(2)})
+    `;
+
+    if (parseFloat(percentualPeso) >= quorumMinimo) {
         document.getElementById('alertaQuorum').style.display = 'none';
         document.getElementById('quorumAtingido').style.display = 'block';
-        
-        // Se já confirmou presença, mostrar botão de votação
-        const usuario = getUsuario();
-        const participante = eventoAtual.participantes.find(p => p.usuario_id === usuario.id);
-        if (participante && participante.presente) {
-            document.getElementById('mensagemAguardo').textContent = 'O quórum foi atingido. Você pode votar agora!';
-            document.getElementById('botaoVotacao').style.display = 'block';
-        }
+        document.getElementById('quorumAtingido').innerHTML = `
+            <i class="fas fa-check-circle"></i>
+            <strong>Quórum de ${quorumMinimo}% atingido!</strong> (${percentualPeso}% presente)
+            <br>
+            <small>Aguardando administrador iniciar a votação...</small>
+        `;
     } else {
         document.getElementById('alertaQuorum').style.display = 'block';
         document.getElementById('quorumAtingido').style.display = 'none';
     }
 
-    // Renderizar grid de participantes
+    if (eventoAtual.status === 'ATIVO') {
+        const usuario = getUsuario();
+        const participante = eventoAtual.participantes.find(p => p.usuario_id === usuario.id);
+        if (participante && participante.presente) {
+            document.getElementById('mensagemAguardo').innerHTML = `
+                <i class="fas fa-check-circle"></i> O administrador iniciou a votação. Você pode votar agora!
+            `;
+            document.getElementById('botaoVotacao').style.display = 'block';
+        }
+    }
+
     const grid = document.getElementById('participantesGrid');
     grid.innerHTML = eventoAtual.participantes.map(p => `
         <div class="participante-card ${p.presente ? 'presente' : ''}">
             <i class="fas ${p.presente ? 'fa-user-check' : 'fa-user'}"></i>
             <div class="participante-info">
                 <strong>${p.nome}</strong>
-                <small>${p.municipio_nome || 'Admin'}</small>
+                <small>${p.municipio_nome || 'Admin'} ${p.peso ? `(Peso: ${p.peso})` : ''}</small>
             </div>
         </div>
     `).join('');
@@ -111,26 +139,31 @@ async function confirmarPresenca() {
         });
 
         if (response.success) {
-            // Recarregar evento
             await carregarEvento(eventoId);
             
             document.getElementById('botaoPresencaContainer').style.display = 'none';
             document.getElementById('presencaConfirmada').style.display = 'block';
 
-            if (response.quorumAtingido) {
-                document.getElementById('mensagemAguardo').textContent = 'O quórum foi atingido. Você pode votar agora!';
-                document.getElementById('botaoVotacao').style.display = 'block';
-            } else {
-                document.getElementById('mensagemAguardo').textContent = `Aguardando outros participantes... (${response.totalPresentes}/${response.quorumMinimo})`;
-            }
+            document.getElementById('mensagemAguardo').innerHTML = `
+                <i class="fas fa-check-circle"></i> Presença confirmada! 
+                <br>
+                <strong>Peso atual: ${response.percentualPeso}%</strong> de ${response.quorumMinimo}% necessário
+                <br>
+                <small>Aguardando administrador iniciar a votação...</small>
+            `;
+
+            await alertCustom(
+                `Presença confirmada com sucesso!\n\nPeso do quórum: ${response.percentualPeso}% de ${response.quorumMinimo}%`,
+                'Presença Confirmada',
+                'success'
+            );
         }
     } catch (error) {
-        alert(error.message);
+        await alertCustom(error.message, 'Erro', 'error');
     }
 }
 
 function iniciarAtualizacaoAutomatica(eventoId) {
-    // Atualizar a cada 5 segundos
     intervalAtualizacao = setInterval(async () => {
         await carregarEvento(eventoId);
     }, 5000);
@@ -142,7 +175,6 @@ function irParaVotacao() {
     window.location.href = `/votacao.html?evento=${eventoId}`;
 }
 
-// Limpar intervalo ao sair da página
 window.addEventListener('beforeunload', () => {
     if (intervalAtualizacao) {
         clearInterval(intervalAtualizacao);

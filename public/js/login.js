@@ -1,18 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Aplicar máscara de CPF
     const cpfInput = document.getElementById('cpf');
     aplicarMascaraCPF(cpfInput);
 
-    // Verificar se já está logado
     const sessionId = getSessionId();
     if (sessionId) {
         verificarSessaoExistente();
     }
 
-    // Form de login
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
 
-    // Mostrar/ocultar campo de senha baseado no tipo de usuário
     cpfInput.addEventListener('blur', verificarTipoUsuario);
 });
 
@@ -38,7 +34,6 @@ async function verificarTipoUsuario() {
         return;
     }
 
-    // Por padrão, ocultar senha (será usado para prefeitos/representantes)
     document.getElementById('senhaGroup').style.display = 'none';
     document.getElementById('senha').required = false;
 }
@@ -63,14 +58,41 @@ async function handleLogin(e) {
         if (response.success) {
             setSessionId(response.sessionId);
             setUsuario(response.usuario);
-            mostrarMensagem('mensagem', 'Login realizado com sucesso!', 'success');
             
-            setTimeout(() => {
-                redirecionarPorTipo(response.usuario.tipo);
-            }, 1000);
+            // Salvar eventos de presença para mostrar depois
+            if (response.eventosComPresenca && response.eventosComPresenca.length > 0) {
+                localStorage.setItem('eventosPresenca', JSON.stringify(response.eventosComPresenca));
+            }
+            
+            // Mostrar mensagem de presença confirmada
+            if (response.eventosComPresenca && response.eventosComPresenca.length > 0) {
+                const eventosNovos = response.eventosComPresenca.filter(e => e.automatica);
+                if (eventosNovos.length > 0) {
+                    const mensagem = `Login realizado com sucesso!\n\n✅ Presença confirmada automaticamente em ${eventosNovos.length} evento(s).`;
+                    mostrarMensagem('mensagem', mensagem, 'success');
+                    
+                    setTimeout(async () => {
+                        await alertCustom(
+                            `Presença confirmada automaticamente!\n\nEventos:\n${eventosNovos.map(e => '• ' + e.titulo).join('\n')}`,
+                            'Bem-vindo ao Sistema',
+                            'success'
+                        );
+                        redirecionarPorTipo(response.usuario.tipo);
+                    }, 500);
+                } else {
+                    mostrarMensagem('mensagem', 'Login realizado com sucesso!', 'success');
+                    setTimeout(() => {
+                        redirecionarPorTipo(response.usuario.tipo);
+                    }, 1000);
+                }
+            } else {
+                mostrarMensagem('mensagem', 'Login realizado com sucesso!', 'success');
+                setTimeout(() => {
+                    redirecionarPorTipo(response.usuario.tipo);
+                }, 1000);
+            }
         }
     } catch (error) {
-        // Se erro menciona senha, mostrar campo de senha
         if (error.message.includes('Senha') || error.message.includes('senha')) {
             document.getElementById('senhaGroup').style.display = 'block';
             document.getElementById('senha').required = true;
@@ -83,7 +105,6 @@ function redirecionarPorTipo(tipo) {
     if (tipo === 'ADMIN') {
         window.location.href = '/admin.html';
     } else {
-        // Redirecionar para lista de eventos disponíveis
         window.location.href = '/eventos.html';
     }
 }

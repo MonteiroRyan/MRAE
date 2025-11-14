@@ -15,10 +15,8 @@ const adminController = {
     try {
       const { cpf, nome, senha, tipo, municipio_id } = req.body;
 
-      // Limpar CPF
       const cpfLimpo = cpf.replace(/\D/g, '');
 
-      // Validações
       if (!validarCPF(cpfLimpo)) {
         return res.status(400).json({ 
           success: false, 
@@ -33,7 +31,6 @@ const adminController = {
         });
       }
 
-      // Validar senha apenas para ADMIN
       if (tipo === 'ADMIN' && !senha) {
         return res.status(400).json({ 
           success: false, 
@@ -48,7 +45,6 @@ const adminController = {
         });
       }
 
-      // Verificar se CPF já existe
       const [usuariosExistentes] = await pool.query(
         'SELECT id FROM usuarios WHERE cpf = ?',
         [cpfLimpo]
@@ -61,13 +57,11 @@ const adminController = {
         });
       }
 
-      // Hash da senha apenas se for ADMIN
       let senhaHash = null;
       if (tipo === 'ADMIN') {
         senhaHash = await bcrypt.hash(senha, 10);
       }
 
-      // Inserir usuário
       const [resultado] = await pool.query(
         'INSERT INTO usuarios (cpf, nome, senha, tipo, municipio_id, ativo) VALUES (?, ?, ?, ?, ?, 1)',
         [cpfLimpo, nome, senhaHash, tipo, municipio_id || null]
@@ -128,7 +122,6 @@ const adminController = {
       const { id } = req.params;
       const { nome, senha, tipo, municipio_id, ativo } = req.body;
 
-      // Verificar se usuário existe
       const [usuariosExistentes] = await pool.query(
         'SELECT id, tipo FROM usuarios WHERE id = ?',
         [id]
@@ -141,7 +134,6 @@ const adminController = {
         });
       }
 
-      // Construir query de atualização
       let query = 'UPDATE usuarios SET ';
       const params = [];
       const updates = [];
@@ -151,7 +143,6 @@ const adminController = {
         params.push(nome);
       }
 
-      // Senha apenas para ADMIN
       if (senha && (tipo === 'ADMIN' || usuariosExistentes[0].tipo === 'ADMIN')) {
         const senhaHash = await bcrypt.hash(senha, 10);
         updates.push('senha = ?');
@@ -162,7 +153,6 @@ const adminController = {
         updates.push('tipo = ?');
         params.push(tipo);
         
-        // Se mudou para não-admin, remover senha
         if (tipo !== 'ADMIN') {
           updates.push('senha = NULL');
         }
@@ -204,30 +194,43 @@ const adminController = {
     }
   },
 
+  // MUDANÇA: Permitir deletar mesmo se votou
   async deletarUsuario(req, res) {
     const pool = getPool();
     
     try {
       const { id } = req.params;
 
-      // Não permitir deletar se já votou
-      const [votos] = await pool.query(
-        'SELECT id FROM votos WHERE usuario_id = ?',
+      // Verificar se usuário existe
+      const [usuarios] = await pool.query(
+        'SELECT nome FROM usuarios WHERE id = ?',
         [id]
       );
 
-      if (votos.length > 0) {
-        return res.status(400).json({ 
+      if (usuarios.length === 0) {
+        return res.status(404).json({ 
           success: false, 
-          message: 'Não é possível deletar usuário que já votou' 
+          message: 'Usuário não encontrado' 
         });
       }
 
+      // Verificar se votou
+      const [votos] = await pool.query(
+        'SELECT COUNT(*) as total FROM votos WHERE usuario_id = ?',
+        [id]
+      );
+
+      const jaVotou = votos[0].total > 0;
+
+      // Deletar usuário (CASCADE vai deletar votos associados)
       await pool.query('DELETE FROM usuarios WHERE id = ?', [id]);
 
       return res.json({
         success: true,
-        message: 'Usuário deletado com sucesso'
+        message: jaVotou 
+          ? `Usuário "${usuarios[0].nome}" deletado com sucesso. Seus ${votos[0].total} voto(s) também foram removidos.`
+          : `Usuário "${usuarios[0].nome}" deletado com sucesso.`,
+        votosRemovidos: votos[0].total
       });
 
     } catch (error) {
@@ -352,7 +355,6 @@ const adminController = {
     try {
       const { id } = req.params;
 
-      // Verificar se há usuários vinculados
       const [usuarios] = await pool.query(
         'SELECT id FROM usuarios WHERE municipio_id = ?',
         [id]

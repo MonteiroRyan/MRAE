@@ -2,7 +2,6 @@ const { validarCPF } = require('../utils/validarCPF');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-// Obter pool do global ou importar
 const getPool = () => {
   if (global.pool) return global.pool;
   const { pool } = require('../server');
@@ -16,7 +15,6 @@ const authController = {
     try {
       const { cpf, senha } = req.body;
 
-      // Validar entrada
       if (!cpf) {
         return res.status(400).json({ 
           success: false, 
@@ -24,10 +22,8 @@ const authController = {
         });
       }
 
-      // Limpar CPF
       const cpfLimpo = cpf.replace(/\D/g, '');
 
-      // Validar CPF
       if (!validarCPF(cpfLimpo)) {
         return res.status(400).json({ 
           success: false, 
@@ -35,7 +31,6 @@ const authController = {
         });
       }
 
-      // Buscar usuário no banco
       const [usuarios] = await pool.query(
         `SELECT u.*, m.nome as municipio_nome, m.peso 
          FROM usuarios u 
@@ -53,7 +48,6 @@ const authController = {
 
       const usuario = usuarios[0];
 
-      // Verificar senha (APENAS PARA ADMIN)
       if (usuario.tipo === 'ADMIN') {
         if (!senha) {
           return res.status(400).json({ 
@@ -70,11 +64,47 @@ const authController = {
           });
         }
       }
-      // Prefeitos e Representantes não precisam de senha
 
-      // Criar sessão no banco de dados
+      // NOVO: Confirmar presença automaticamente em todos os eventos ativos/aguardando
+      let eventosComPresenca = [];
+      if (usuario.tipo !== 'ADMIN') {
+        const [eventosParticipante] = await pool.query(
+          `SELECT ep.evento_id, e.titulo, ep.presente
+           FROM evento_participantes ep
+           INNER JOIN eventos_votacao e ON ep.evento_id = e.id
+           WHERE ep.usuario_id = ? AND e.status IN ('RASCUNHO', 'AGUARDANDO_INICIO', 'ATIVO')`,
+          [usuario.id]
+        );
+
+        for (const evento of eventosParticipante) {
+          if (!evento.presente) {
+            // Confirmar presença automaticamente
+            await pool.query(
+              `UPDATE evento_participantes 
+               SET presente = 1, data_presenca = NOW() 
+               WHERE evento_id = ? AND usuario_id = ?`,
+              [evento.evento_id, usuario.id]
+            );
+            
+            eventosComPresenca.push({
+              id: evento.evento_id,
+              titulo: evento.titulo,
+              presencaConfirmada: true,
+              automatica: true
+            });
+          } else {
+            eventosComPresenca.push({
+              id: evento.evento_id,
+              titulo: evento.titulo,
+              presencaConfirmada: true,
+              automatica: false
+            });
+          }
+        }
+      }
+
       const sessionId = crypto.randomBytes(32).toString('hex');
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
       const ipAddress = req.ip || req.connection.remoteAddress;
       const userAgent = req.headers['user-agent'];
 
@@ -92,8 +122,10 @@ const authController = {
           cpf: usuario.cpf,
           tipo: usuario.tipo,
           municipio: usuario.municipio_nome,
+          municipio_id: usuario.municipio_id,
           peso: usuario.peso
-        }
+        },
+        eventosComPresenca: eventosComPresenca
       });
 
     } catch (error) {
@@ -118,7 +150,6 @@ const authController = {
         });
       }
 
-      // Buscar sessão no banco de dados
       const [sessoes] = await pool.query(
         `SELECT s.*, u.id, u.cpf, u.nome, u.tipo, u.municipio_id, 
                 m.nome as municipio_nome, m.peso
@@ -167,7 +198,6 @@ const authController = {
       const { sessionId } = req.body;
       
       if (sessionId) {
-        // Remover sessão do banco de dados
         await pool.query('DELETE FROM sessoes WHERE session_id = ?', [sessionId]);
       }
       
@@ -185,15 +215,27 @@ const authController = {
     }
   },
 
-  // Limpar sessões expiradas (executar periodicamente)
   async limparSessoesExpiradas() {
     const pool = getPool();
     
     try {
-      await pool.query('DELETE FROM sessoes WHERE expires_at < NOW()');
-      console.log('🧹 Sessões expiradas limpas');
+      const [tables] = await pool.query(
+        `SELECT COUNT(*) as count FROM information_schema.tables 
+         WHERE table_schema = ? AND table_name = 'sessoes'`,
+        [process.env.DB_NAME || 'sistema_votacao']
+      );
+
+      if (tables[0].count === 0) {
+        return;
+      }
+
+      const [result] = await pool.query('DELETE FROM sessoes WHERE expires_at < NOW()');
+      
+      if (result.affectedRows > 0) {
+        console.log(`🧹 ${result.affectedRows} sessão(ões) expirada(s) removida(s)`);
+      }
     } catch (error) {
-      console.error('Erro ao limpar sessões:', error);
+      console.error('⚠️  Erro ao limpar sessões:', error.message);
     }
   }
 };

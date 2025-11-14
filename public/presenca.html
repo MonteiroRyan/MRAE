@@ -26,10 +26,34 @@
                 <h2><i class="fas fa-info-circle"></i> Informações do Evento</h2>
                 <p><strong><i class="fas fa-heading"></i> Título:</strong> <span id="eventoTitulo"></span></p>
                 <p><strong><i class="fas fa-align-left"></i> Descrição:</strong> <span id="eventoDescricao"></span></p>
+                <p><strong><i class="fas fa-vote-yea"></i> Tipo de Votação:</strong> <span id="eventoTipo"></span></p>
                 <p><strong><i class="fas fa-calendar"></i> Período:</strong> <span id="eventoPeriodo"></span></p>
             </div>
 
             <div id="conteudoPresenca">
+                <!-- Estatísticas de Quórum -->
+                <div class="lista-presenca">
+                    <h3><i class="fas fa-chart-line"></i> Status do Quórum (Por Peso)</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                        <div class="stat-card">
+                            <h4>Peso Presente</h4>
+                            <p class="stat-value" style="font-size: 1.5rem;"><span id="pesoPresente">0</span></p>
+                        </div>
+                        <div class="stat-card">
+                            <h4>Peso Total</h4>
+                            <p class="stat-value" style="font-size: 1.5rem;"><span id="pesoTotal">0</span></p>
+                        </div>
+                        <div class="stat-card">
+                            <h4>Percentual</h4>
+                            <p class="stat-value" style="font-size: 1.5rem;"><span id="percentualPeso">0</span>%</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4>Quórum Mínimo</h4>
+                            <p class="stat-value" style="font-size: 1.5rem;"><span id="quorumMinimo">60</span>%</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Alerta de Quórum -->
                 <div id="alertaQuorum" class="quorum-alerta">
                     <i class="fas fa-exclamation-triangle"></i>
@@ -39,7 +63,7 @@
 
                 <div id="quorumAtingido" class="quorum-atingido" style="display: none;">
                     <i class="fas fa-check-circle"></i>
-                    <strong>Quórum atingido!</strong> A votação está liberada.
+                    <strong>Quórum atingido!</strong>
                 </div>
 
                 <!-- Contador de Presença -->
@@ -75,6 +99,8 @@
                         <i class="fas fa-vote-yea"></i> Ir para Votação
                     </button>
                 </div>
+
+                <div id="mensagem" class="mensagem"></div>
             </div>
         </div>
     </div>

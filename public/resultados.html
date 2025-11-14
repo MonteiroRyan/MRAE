@@ -23,7 +23,7 @@
 
     <div class="container fade-in">
         <div class="resultados-header">
-            <h2><i class="fas fa-poll"></i> <span id="eventoTitulo">Resultados em Tempo Real</span></h2>
+            <h2 id="eventoTitulo"><i class="fas fa-poll"></i> Resultados em Tempo Real</h2>
             <p class="atualizacao">
                 <span class="status-indicator"></span>
                 Atualização automática ativa
@@ -44,41 +44,41 @@
                 <p class="stat-value" id="participacao">0%</p>
             </div>
             <div class="stat-card">
-                <h3><i class="fas fa-users"></i> Participantes</h3>
+                <h3><i class="fas fa-city"></i> Municípios Participantes</h3>
                 <p class="stat-value" id="totalParticipantes">0</p>
             </div>
         </div>
 
+        <!-- Gráfico de Barras Empilhadas -->
         <div class="charts-container">
-            <div class="chart-box">
-                <h3><i class="fas fa-chart-pie"></i> Distribuição por Quantidade de Votos</h3>
-                <canvas id="chartQuantidade"></canvas>
-            </div>
-            <div class="chart-box">
-                <h3><i class="fas fa-chart-bar"></i> Distribuição por Peso Ponderado</h3>
-                <canvas id="chartPeso"></canvas>
+            <div class="chart-box" style="grid-column: 1 / -1;">
+                <h3><i class="fas fa-chart-bar"></i> Distribuição de Votos (0-100%)</h3>
+                <canvas id="chartBarras" style="max-height: 200px;"></canvas>
             </div>
         </div>
 
         <div class="detalhes-resultados">
             <h3><i class="fas fa-table"></i> Detalhamento dos Resultados</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Opção</th>
-                        <th>Quantidade</th>
-                        <th>% Quantidade</th>
-                        <th>Peso Total</th>
-                        <th>% Peso</th>
-                    </tr>
-                </thead>
-                <tbody id="tabelaResultados">
-                    <tr><td colspan="5" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>
-                </tbody>
-            </table>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Opção</th>
+                            <th>Quantidade</th>
+                            <th>% Quantidade</th>
+                            <th>Peso Total</th>
+                            <th>% Peso</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaResultados">
+                        <tr><td colspan="5" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
+    <script src="/js/modal-confirm.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/resultados.js"></script>
 </body>
